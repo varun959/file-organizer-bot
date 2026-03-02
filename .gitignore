@@ -3,4 +3,4 @@ __pycache__/
 *.pyo
 *.log
 .DS_Store
-test_files/
+test_dir/
