@@ -14,11 +14,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from platformdirs import user_data_dir
+
 # --- Configuration ---
+
+VERSION = "1.0.0"
 
 UNDO_FILE = ".organizer_undo.json"
 HISTORY_FILE = ".organizer_history.json"
-CENTRAL_LOG = Path.home() / ".local" / "share" / "organizer" / "history.json"
+CENTRAL_LOG = Path(user_data_dir("organizer")) / "history.json"
 
 FILE_CATEGORIES = {
     "images":     {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".webp", ".tiff", ".ico", ".heic"},
@@ -177,8 +181,10 @@ def append_history_log(summary: Summary, target: Path) -> None:
     logging.info("Run appended to history log %s", log_path)
 
 
-def append_central_log(summary: Summary, target: Path, log_path: Path = CENTRAL_LOG) -> None:
+def append_central_log(summary: Summary, target: Path, log_path: Optional[Path] = None) -> None:
     """Append an organize record to the machine-wide central log."""
+    if log_path is None:
+        log_path = CENTRAL_LOG
     entry = {
         "type": "organize",
         "run_at": datetime.now().isoformat(timespec="seconds"),
@@ -191,8 +197,10 @@ def append_central_log(summary: Summary, target: Path, log_path: Path = CENTRAL_
     logging.info("Run appended to central log %s", log_path)
 
 
-def undo(target: Path, dry_run: bool = False, central_log_path: Path = CENTRAL_LOG) -> None:
+def undo(target: Path, dry_run: bool = False, central_log_path: Optional[Path] = None) -> None:
     """Reverse the last organize run using the undo manifest."""
+    if central_log_path is None:
+        central_log_path = CENTRAL_LOG
     manifest_path = target / UNDO_FILE
     if not manifest_path.exists():
         logging.error("No undo manifest found in %s — nothing to undo", target)
@@ -352,6 +360,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--history", action="store_true",
         help="Show the history of all organizer runs on this machine"
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {VERSION}"
     )
     return parser.parse_args()
 

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+import organizer
 from organizer import (
     HISTORY_FILE,
     UNDO_FILE,
@@ -549,3 +550,40 @@ class TestAppendCentralLog:
         assert len(data) == 2
         assert data[0]["directory"] == str(dir_a)
         assert data[1]["directory"] == str(dir_b)
+
+
+# ---------------------------------------------------------------------------
+# platformdirs integration
+# ---------------------------------------------------------------------------
+
+class TestPlatformdirs:
+    def _make_summary(self) -> dict:
+        return {
+            "images": {"count": 1, "size_bytes": 1024, "files": ["a.jpg"]},
+        }
+
+    def test_append_central_log_respects_central_log_constant(self, monkeypatch, tmp_path):
+        """append_central_log() with no explicit path should use the CENTRAL_LOG constant."""
+        fake_log = tmp_path / "fake_central.json"
+        monkeypatch.setattr(organizer, "CENTRAL_LOG", fake_log)
+        append_central_log(self._make_summary(), tmp_path)
+        assert fake_log.exists()
+
+    def test_undo_respects_central_log_constant(self, monkeypatch, tmp_path):
+        """undo() with no explicit central_log_path should use the CENTRAL_LOG constant."""
+        fake_log = tmp_path / "fake_central.json"
+        monkeypatch.setattr(organizer, "CENTRAL_LOG", fake_log)
+        # Set up an organize + manifest so undo has something to reverse
+        (tmp_path / "photo.jpg").write_bytes(b"x" * 16)
+        _, moves = organize(tmp_path)
+        save_undo_manifest(moves, tmp_path)
+        undo(tmp_path)
+        assert fake_log.exists()
+        data = json.loads(fake_log.read_text())
+        assert data[0]["type"] == "undo"
+
+    def test_central_log_path_comes_from_platformdirs(self, monkeypatch):
+        """CENTRAL_LOG should be derived from platformdirs, not a hardcoded path."""
+        from platformdirs import user_data_dir
+        expected = Path(user_data_dir("organizer")) / "history.json"
+        assert organizer.CENTRAL_LOG == expected

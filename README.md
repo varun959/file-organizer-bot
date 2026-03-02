@@ -1,5 +1,7 @@
 # File Organizer
 
+**Version 1.0.0**
+
 A command-line tool that sorts loose files into categorized subfolders. Every run is fully reversible, and a complete audit trail is kept for both users and maintainers.
 
 ---
@@ -19,17 +21,18 @@ A command-line tool that sorts loose files into categorized subfolders. Every ru
 ## Requirements
 
 - Python 3.9 or later
-- No third-party dependencies
+- [`platformdirs`](https://github.com/platformdirs/platformdirs) — for platform-appropriate log file locations
 
 ---
 
 ## Installation
 
-Clone the repository and run directly — no installation needed:
+Clone the repository and install the single dependency:
 
 ```bash
 git clone https://github.com/yourname/file-organizer-bot.git
 cd file-organizer-bot
+pip3 install platformdirs
 python3 organizer.py --help
 ```
 
@@ -47,9 +50,10 @@ python3 organizer.py <directory> [options]
 |------|-------------|
 | `--dry-run` | Preview changes without moving any files |
 | `--undo` | Restore files to their original locations |
-| `--history` | Show all runs on this machine |
+| `--history` | Show all runs on this machine, or pass a directory to show that directory's history |
 | `--report FILE` | Save a JSON summary report to FILE |
 | `--verbose` / `-v` | Show per-file logging |
+| `--version` | Show the version number |
 
 ### Examples
 
@@ -118,9 +122,29 @@ Every real run writes an undo manifest (`.organizer_undo.json`) to the target di
 Two logs are maintained automatically after every real run:
 
 - **Per-directory** — `.organizer_history.json` in the target directory. Records all organize and undo operations on that folder. Travels with the directory.
-- **Central** — `~/.local/share/organizer/history.json`. Records all operations across every directory on the machine, including the directory path. Useful for support and auditing.
+- **Central** — platform-appropriate location (see below). Records all operations across every directory on the machine, including the directory path. Useful for support and auditing.
 
 Neither log is written during dry-run operations.
+
+---
+
+## Platform Support
+
+| OS | Status |
+|----|--------|
+| macOS | Tested |
+| Linux | Tested |
+| Windows | Untested — should work, but not verified |
+
+The central log is stored in the platform-appropriate location via `platformdirs`:
+
+| OS | Central log path |
+|----|-----------------|
+| macOS | `~/Library/Application Support/organizer/history.json` |
+| Linux | `~/.local/share/organizer/history.json` |
+| Windows | `C:\Users\<user>\AppData\Local\organizer\history.json` |
+
+> **Note:** Windows support is not currently tested. File moves, path handling, and log locations are expected to work correctly, but contributions with Windows-specific testing are welcome.
 
 ---
 
@@ -130,7 +154,7 @@ Neither log is written during dry-run operations.
 python3 -m pytest test_organizer.py -v
 ```
 
-73 tests covering categorization, collision handling, dry-run, undo, history logging, and more.
+76 tests covering categorization, collision handling, dry-run, undo, history logging, platformdirs integration, and more.
 
 ---
 
@@ -140,6 +164,5 @@ python3 -m pytest test_organizer.py -v
 file-organizer-bot/
 ├── organizer.py          # Main CLI tool
 ├── test_organizer.py     # Test suite
-├── USER_MANUAL.md        # Full user manual
 └── README.md             # This file
 ```
